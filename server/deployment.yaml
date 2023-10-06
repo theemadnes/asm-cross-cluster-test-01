@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: whereami-server
+  name: whereami-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whereami-server
+  template:
+    metadata:
+      labels:
+        app: whereami-server
+        version: v1
+    spec:
+      serviceAccountName: whereami-server
+      securityContext:
+        fsGroup: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      containers:
+      - name: whereami-server
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - all
+          privileged: false
+          readOnlyRootFilesystem: true
+        image: us-docker.pkg.dev/google-samples/containers/gke/whereami:v1.2.21
+        ports:
+          - name: http
+            containerPort: 8080
+        livenessProbe:
+          httpGet:
+              path: /healthz
+              port: 8080
+              scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10
+          timeoutSeconds: 1
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: POD_SERVICE_ACCOUNT
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.serviceAccountName
+          - name: BACKEND_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: whereami-server
+                key: BACKEND_ENABLED
+          - name: BACKEND_SERVICE
+            valueFrom:
+              configMapKeyRef:
+                name: whereami-server
+                key: BACKEND_SERVICE
+          - name: METADATA
+            valueFrom:
+              configMapKeyRef:
+                name: whereami-server
+                key: METADATA
+          - name: ECHO_HEADERS
+            valueFrom:
+              configMapKeyRef:
+                name: whereami-server
+                key: ECHO_HEADERS
+          - name: GRPC_ENABLED
+            valueFrom:
+              configMapKeyRef:
+                name: whereami-server
+                key: GRPC_ENABLED
+          - name: TRACE_SAMPLING_RATIO
+            valueFrom:
+              configMapKeyRef:
+                name: whereami-server
+                key: TRACE_SAMPLING_RATIO
